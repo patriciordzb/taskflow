@@ -1,50 +1,61 @@
 import { useState, useEffect, useCallback } from 'react'
+import { supabase } from '../supabase.js'
 import { DEFAULT_TASKS } from '../constants.js'
 
-const STORAGE_KEY = 'taskflow_tasks'
-const COUNTER_KEY = 'taskflow_counter'
-
-function loadTasks() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : DEFAULT_TASKS
-  } catch { return DEFAULT_TASKS }
-}
-
-function loadCounter() {
-  return parseInt(localStorage.getItem(COUNTER_KEY) || '8', 10)
-}
-
 export function useTasks() {
-  const [tasks, setTasks] = useState(loadTasks)
-  const [counter, setCounter] = useState(loadCounter)
+  const [tasks, setTasks] = useState([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks))
-  }, [tasks])
+    async function fetchTasks() {
+      const { data, error } = await supabase.from('tasks').select('*').order('created_at', { ascending: true })
+      if (error) { console.error(error); setLoading(false); return }
+      if (data.length === 0) {
+        const seed = DEFAULT_TASKS.map(({ id, ...rest }) => rest)
+        const { error: insertError } = await supabase.from('tasks').insert(seed)
+        if (!insertError) {
+          const { data: seeded } = await supabase.from('tasks').select('*').order('created_at', { ascending: true })
+          setTasks(seeded || [])
+        }
+      } else {
+        setTasks(data)
+      }
+      setLoading(false)
+    }
+    fetchTasks()
+  }, [])
 
   useEffect(() => {
-    localStorage.setItem(COUNTER_KEY, String(counter))
-  }, [counter])
-
-  const addTask = useCallback((data) => {
-    const id = `TF-${String(counter).padStart(3, '0')}`
-    setCounter(c => c + 1)
-    setTasks(prev => [...prev, { id, ...data }])
-    return id
-  }, [counter])
-
-  const updateTask = useCallback((id, data) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, ...data } : t))
+    const channel = supabase
+      .channel('tasks-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload) => {
+        if (payload.eventType === 'INSERT') setTasks(prev => [...prev, payload.new])
+        else if (payload.eventType === 'UPDATE') setTasks(prev => prev.map(t => t.id === payload.new.id ? payload.new : t))
+        else if (payload.eventType === 'DELETE') setTasks(prev => prev.filter(t => t.id !== payload.old.id))
+      })
+      .subscribe()
+    return () => supabase.removeChannel(channel)
   }, [])
 
-  const deleteTask = useCallback((id) => {
-    setTasks(prev => prev.filter(t => t.id !== id))
+  const addTask = useCallback(async (data) => {
+    const { error } = await supabase.from('tasks').insert(data)
+    if (error) console.error(error)
   }, [])
 
-  const moveTask = useCallback((id, newStatus) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t))
+  const updateTask = useCallback(async (id, data) => {
+    const { error } = await supabase.from('tasks').update(data).eq('id', id)
+    if (error) console.error(error)
   }, [])
 
-  return { tasks, addTask, updateTask, deleteTask, moveTask }
+  const deleteTask = useCallback(async (id) => {
+    const { error } = await supabase.from('tasks').delete().eq('id', id)
+    if (error) console.error(error)
+  }, [])
+
+  const moveTask = useCallback(async (id, newStatus) => {
+    const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', id)
+    if (error) console.error(error)
+  }, [])
+
+  return { tasks, loading, addTask, updateTask, deleteTask, moveTask }
 }
