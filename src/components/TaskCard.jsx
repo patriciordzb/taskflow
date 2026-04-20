@@ -32,9 +32,11 @@ export default function TaskCard({ task, onEdit, onDelete }) {
       border: '0.5px solid var(--border)',
       borderRadius: 'var(--radius)',
       padding: '10px 12px',
-      cursor: 'pointer',
+      cursor: 'grab',
       position: 'relative',
     }}
+      draggable
+      onDragStart={e => e.dataTransfer.setData('taskId', String(task.id))}
       onClick={() => onEdit(task)}
     >
       {/* Actions */}
