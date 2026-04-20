@@ -2,21 +2,22 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabase.js'
 import { DEFAULT_TASKS } from '../constants.js'
 
-export function useTasks() {
+export function useTasks(workspaceId) {
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
 
   // Load all tasks from Supabase on mount
   useEffect(() => {
     async function fetchTasks() {
-      const { data, error } = await supabase.from('tasks').select('*').order('created_at', { ascending: true })
+      if (!workspaceId) { setLoading(false); return }
+      const { data, error } = await supabase.from('tasks').select('*').eq('workspace_id', workspaceId).order('created_at', { ascending: true })
       if (error) {
         console.error('Error fetching tasks:', error)
         setLoading(false)
         return
       }
       if (data.length === 0) {
-        const seed = DEFAULT_TASKS.map(({ id, ...rest }) => rest)
+        const seed = DEFAULT_TASKS.map(({ id, ...rest }) => ({ ...rest, workspace_id: workspaceId }))
         const { error: insertError } = await supabase.from('tasks').insert(seed)
         if (!insertError) {
           const { data: seeded } = await supabase.from('tasks').select('*').order('created_at', { ascending: true })
@@ -49,7 +50,7 @@ export function useTasks() {
   }, [])
 
   const addTask = useCallback(async (data) => {
-    const { error } = await supabase.from('tasks').insert(data)
+    const { error } = await supabase.from('tasks').insert({ ...data, workspace_id: workspaceId })
     if (error) console.error('Error adding task:', error)
   }, [])
 

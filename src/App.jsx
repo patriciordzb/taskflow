@@ -6,6 +6,8 @@ import TaskModal from './components/TaskModal.jsx'
 import TaskCard from './components/TaskCard.jsx'
 import Column from './components/Column.jsx'
 import AuthPage from './components/AuthPage.jsx'
+import OnboardingPage from './components/OnboardingPage.jsx'
+import { useWorkspace } from './hooks/useWorkspace.js'
 import { useTranslation } from 'react-i18next'
 
 function useIsMobile() {
@@ -18,8 +20,8 @@ function useIsMobile() {
   return isMobile
 }
 
-function Board({ session, profile, signOut, trialDaysLeft }) {
-  const { tasks, loading, addTask, updateTask, deleteTask, moveTask } = useTasks()
+function Board({ session, profile, signOut, trialDaysLeft, workspace }) {
+  const { tasks, loading, addTask, updateTask, deleteTask, moveTask } = useTasks(workspace?.id)
   const { t } = useTranslation()
   const isMobile = useIsMobile()
   const [activeUser, setActiveUser] = useState('pato')
@@ -371,8 +373,9 @@ function Board({ session, profile, signOut, trialDaysLeft }) {
 
 export default function App() {
   const { session, profile, loading: authLoading, signOut, trialDaysLeft } = useAuth()
+  const { workspace, loading: wsLoading, createWorkspace } = useWorkspace(session)
 
-  if (authLoading) return (
+  if (authLoading || wsLoading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', flexDirection: 'column', gap: 12 }}>
       <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTop: '3px solid var(--blue)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
@@ -380,7 +383,8 @@ export default function App() {
   )
 
   if (!session) return <AuthPage />
+  if (!workspace) return <OnboardingPage onCreateWorkspace={createWorkspace} />
 
-  return <Board session={session} profile={profile} signOut={signOut} trialDaysLeft={trialDaysLeft} />
+  return <Board session={session} profile={profile} signOut={signOut} trialDaysLeft={trialDaysLeft} workspace={workspace} />
 }
 // APP_WRAPPER
