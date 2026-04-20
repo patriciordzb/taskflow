@@ -1,7 +1,6 @@
 export const USERS = [
-  { id: 'pato', name: 'Pato',  initials: 'PA', bg: '#B5D4F4', color: '#0C447C' },
-  { id: 'jose', name: 'Jose',  initials: 'JO', bg: '#9FE1CB', color: '#085041' },
-  { id: 'ana',  name: 'Ana',   initials: 'AN', bg: '#F5C4B3', color: '#712B13' },
+  { id: 'pato', name: 'Pato', initials: 'PA', bg: '#B5D4F4', color: '#0C447C' },
+  { id: 'jose', name: 'Jose', initials: 'JO', bg: '#9FE1CB', color: '#085041' },
 ]
 
 export const COLUMNS = [
@@ -26,11 +25,11 @@ export const PRIORITIES = {
 }
 
 export const DEFAULT_TASKS = [
-  { id:'TF-001', title:'Setup Python pipeline for tensile analysis', status:'done',       type:'task',    priority:'P1', assignee:'pato', desc:'Configure GRX810_Pipeline.py in VS Code/Anaconda' },
-  { id:'TF-002', title:'Prepare samples for EBSD session with Zach', status:'inprogress', type:'task',    priority:'P1', assignee:'pato', desc:'Coordinate with lab, verify phase files in Oxford AZtec' },
-  { id:'TF-003', title:'Compare E, YS, UTS across EOS machines',     status:'inprogress', type:'feature', priority:'P2', assignee:'jose', desc:'M280, M290, M400 variants vs Touchstone reference values' },
-  { id:'TF-004', title:'Review crystallographic phase files',         status:'todo',       type:'docs',    priority:'P2', assignee:'ana',  desc:'Oxford AZtec software – Ni FCC phase identification' },
-  { id:'TF-005', title:'DSA/serration detection script',              status:'todo',       type:'feature', priority:'P3', assignee:'pato', desc:'Separate script for dynamic strain aging detection' },
-  { id:'TF-006', title:'Fix matplotlib PDF export bug',               status:'backlog',    type:'bug',     priority:'P2', assignee:'jose', desc:'Charts not rendering correctly when exporting to PDF' },
-  { id:'TF-007', title:'NASA internal report – results section',      status:'review',     type:'docs',    priority:'P1', assignee:'ana',  desc:'Write up mechanical property findings for NASA report' },
+  { title: 'Setup Python pipeline for tensile analysis',  desc: 'Configure GRX810_Pipeline.py in VS Code/Anaconda',           status: 'done',       type: 'task',    priority: 'P1', assignee: 'pato', deadline: '' },
+  { title: 'Prepare samples for EBSD session with Zach',  desc: 'Coordinate with lab and verify phase files in Oxford AZtec', status: 'inprogress', type: 'task',    priority: 'P1', assignee: 'pato', deadline: '' },
+  { title: 'Compare E, YS, UTS across EOS machines',      desc: 'M280 M290 M400 variants vs Touchstone reference values',     status: 'inprogress', type: 'feature', priority: 'P2', assignee: 'jose', deadline: '' },
+  { title: 'Review crystallographic phase files',         desc: 'Oxford AZtec software Ni FCC phase identification',          status: 'todo',       type: 'docs',    priority: 'P2', assignee: 'jose', deadline: '' },
+  { title: 'DSA/serration detection script',              desc: 'Separate script for dynamic strain aging detection',         status: 'todo',       type: 'feature', priority: 'P3', assignee: 'pato', deadline: '' },
+  { title: 'Fix matplotlib PDF export bug',               desc: 'Charts not rendering correctly when exporting to PDF',       status: 'backlog',    type: 'bug',     priority: 'P2', assignee: 'jose', deadline: '' },
+  { title: 'NASA internal report results section',        desc: 'Write up mechanical property findings for NASA report',      status: 'review',     type: 'docs',    priority: 'P1', assignee: 'pato', deadline: '' },
 ]

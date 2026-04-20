@@ -1,30 +1,39 @@
 import React, { useState, useMemo } from 'react'
 import { USERS, COLUMNS, TASK_TYPES, PRIORITIES } from './constants.js'
 import { useTasks } from './hooks/useTasks.js'
-import Column from './components/Column.jsx'
 import TaskModal from './components/TaskModal.jsx'
+import TaskCard from './components/TaskCard.jsx'
 
 export default function App() {
-  const { tasks, addTask, updateTask, deleteTask, moveTask } = useTasks()
+  const { tasks, loading, addTask, updateTask, deleteTask, moveTask } = useTasks()
   const [activeUser, setActiveUser] = useState('pato')
-  const [modal, setModal] = useState(null)   // null | { task?, defaultStatus? }
-  const [search, setSearch] = useState('')
-  const [filterType, setFilterType] = useState('all')
+  const [activeTab, setActiveTab]   = useState('todo')
+  const [filterUser, setFilterUser] = useState('all')
   const [filterPriority, setFilterPriority] = useState('all')
+  const [filterType, setFilterType] = useState('all')
+  const [search, setSearch]         = useState('')
+  const [modal, setModal]           = useState(null)
+  const [showFilters, setShowFilters] = useState(false)
 
   const filtered = useMemo(() => tasks.filter(t => {
-    if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false
-    if (filterType !== 'all' && t.type !== filterType) return false
+    if (t.status !== activeTab) return false
+    if (filterUser !== 'all' && t.assignee !== filterUser) return false
     if (filterPriority !== 'all' && t.priority !== filterPriority) return false
+    if (filterType !== 'all' && t.type !== filterType) return false
+    if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false
     return true
-  }), [tasks, search, filterType, filterPriority])
+  }), [tasks, activeTab, filterUser, filterPriority, filterType, search])
+
+  const countFor = (colId) => tasks.filter(t =>
+    t.status === colId &&
+    (filterUser === 'all' || t.assignee === filterUser) &&
+    (filterPriority === 'all' || t.priority === filterPriority) &&
+    (filterType === 'all' || t.type === filterType)
+  ).length
 
   const handleSave = (data) => {
-    if (modal.task) {
-      updateTask(modal.task.id, data)
-    } else {
-      addTask(data)
-    }
+    if (modal.task) updateTask(modal.task.id, data)
+    else addTask(data)
     setModal(null)
   }
 
@@ -32,43 +41,46 @@ export default function App() {
     if (confirm('¿Eliminar esta tarea?')) deleteTask(id)
   }
 
-  const stats = {
-    total: filtered.length,
-    done: filtered.filter(t => t.status === 'done').length,
-    byUser: USERS.map(u => ({ ...u, count: filtered.filter(t => t.assignee === u.id).length })),
+  // Tap avatar = toggle filter by that user
+  const handleAvatarTap = (uid) => {
+    setActiveUser(uid)
+    setFilterUser(prev => prev === uid ? 'all' : uid)
   }
 
-  const FilterBtn = ({ value, label, group }) => {
-    const active = group === 'type' ? filterType === value : filterPriority === value
-    return (
-      <button onClick={() => group === 'type' ? setFilterType(value) : setFilterPriority(value)}
-        style={{
-          fontSize: 12, padding: '4px 10px',
-          border: '0.5px solid var(--border-strong)',
-          borderRadius: 'var(--radius)',
-          background: active ? 'var(--blue-light)' : 'var(--bg-primary)',
-          color: active ? 'var(--blue-text)' : 'var(--text-secondary)',
-          transition: 'all 0.12s',
-        }}
-      >{label}</button>
-    )
+  const activeCol = COLUMNS.find(c => c.id === activeTab)
+  const hasFilters = filterUser !== 'all' || filterPriority !== 'all' || filterType !== 'all'
+
+  const selStyle = {
+    fontSize: 13, padding: '6px 10px',
+    border: '0.5px solid var(--border-strong)',
+    borderRadius: 'var(--radius)',
+    background: 'var(--bg-primary)',
+    color: 'var(--text-primary)',
+    fontFamily: 'var(--font)',
+    outline: 'none', cursor: 'pointer', width: '100%',
   }
+
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', flexDirection: 'column', gap: 12 }}>
+      <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTop: '3px solid var(--blue)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Conectando...</span>
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+    </div>
+  )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', maxWidth: 640, margin: '0 auto' }}>
+
       {/* Topbar */}
       <div style={{
         background: 'var(--bg-primary)', borderBottom: '0.5px solid var(--border)',
-        padding: '0 20px', height: 52,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+        padding: '0 16px', height: 52,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         flexShrink: 0,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: 6, background: '#185FA5',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 26, height: 26, borderRadius: 6, background: '#185FA5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
               <rect x="2" y="2" width="5" height="5" rx="1.5" fill="white" opacity="0.9"/>
               <rect x="9" y="2" width="5" height="5" rx="1.5" fill="white" opacity="0.55"/>
               <rect x="2" y="9" width="5" height="5" rx="1.5" fill="white" opacity="0.55"/>
@@ -76,133 +88,182 @@ export default function App() {
             </svg>
           </div>
           <span style={{ fontSize: 15, fontWeight: 500 }}>TaskFlow</span>
-          <span style={{
-            fontSize: 12, padding: '3px 10px', borderRadius: 'var(--radius)',
-            background: 'var(--blue-light)', color: 'var(--blue-text)', fontWeight: 500,
-          }}>
-            Sprint activo
-          </span>
         </div>
 
+        {/* Avatars — tap to filter by user */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginRight: 4 }}>Tú eres:</span>
+          {filterUser !== 'all' && (
+            <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+              Solo {USERS.find(u => u.id === filterUser)?.name}
+            </span>
+          )}
           {USERS.map(u => (
-            <div key={u.id}
-              onClick={() => setActiveUser(u.id)}
-              title={u.name}
+            <div key={u.id} onClick={() => handleAvatarTap(u.id)} title={`Ver tareas de ${u.name}`}
               style={{
-                width: 30, height: 30, borderRadius: '50%',
+                width: 34, height: 34, borderRadius: '50%',
                 background: u.bg, color: u.color,
                 fontSize: 11, fontWeight: 500,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: 'pointer',
-                border: activeUser === u.id ? `2px solid ${u.color}` : '0.5px solid var(--border-strong)',
-                transition: 'all 0.12s',
+                border: filterUser === u.id ? `2.5px solid ${u.color}` : '0.5px solid var(--border-strong)',
+                opacity: filterUser !== 'all' && filterUser !== u.id ? 0.4 : 1,
+                transition: 'all 0.15s',
               }}
             >{u.initials}</div>
           ))}
         </div>
       </div>
 
-      {/* Subbar */}
-      <div style={{
-        background: 'var(--bg-primary)', borderBottom: '0.5px solid var(--border)',
-        padding: '0 20px', height: 44,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 500 }}>Sprint 1</span>
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-            {new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })} – 2 semanas
-          </span>
+      {/* Search + Filter toggle */}
+      <div style={{ padding: '8px 16px', background: 'var(--bg-tertiary)', display: 'flex', gap: 8, flexShrink: 0 }}>
+        <div style={{ position: 'relative', flex: 1 }}>
+          <span style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', fontSize: 13, pointerEvents: 'none' }}>⌕</span>
+          <input type="text" placeholder="Buscar tareas..." value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ width: '100%', padding: '7px 10px 7px 26px', fontSize: 13, border: '0.5px solid var(--border-strong)', borderRadius: 'var(--radius)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none', fontFamily: 'var(--font)' }}
+          />
         </div>
-        <button
-          onClick={() => setModal({ defaultStatus: 'todo' })}
+        <button onClick={() => setShowFilters(f => !f)}
           style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            fontSize: 13, padding: '5px 12px',
-            background: 'var(--blue)', color: '#fff',
-            border: 'none', borderRadius: 'var(--radius)',
+            padding: '7px 12px', fontSize: 13, borderRadius: 'var(--radius)',
+            border: hasFilters ? '1.5px solid var(--blue)' : '0.5px solid var(--border-strong)',
+            background: hasFilters ? 'var(--blue-light)' : 'var(--bg-primary)',
+            color: hasFilters ? 'var(--blue-text)' : 'var(--text-secondary)',
+            display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', flexShrink: 0,
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <path d="M1 3h11M3 6.5h7M5 10h3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+          </svg>
+          Filtros{hasFilters ? ' •' : ''}
+        </button>
+        <button onClick={() => setModal({ defaultStatus: activeTab })}
+          style={{
+            padding: '7px 14px', fontSize: 13, borderRadius: 'var(--radius)',
+            background: 'var(--blue)', color: '#fff', border: 'none',
+            display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', flexShrink: 0, fontWeight: 500,
           }}
         >
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
             <path d="M5.5 1v9M1 5.5h9" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
-          Nueva tarea
+          Nueva
         </button>
       </div>
 
-      {/* Filters */}
-      <div style={{
-        padding: '8px 20px 4px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
-        background: 'var(--bg-tertiary)', flexShrink: 0,
-      }}>
-        <div style={{ position: 'relative', flex: 1, maxWidth: 220 }}>
-          <span style={{
-            position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
-            color: 'var(--text-secondary)', fontSize: 13, pointerEvents: 'none',
-          }}>⌕</span>
-          <input
-            type="text" placeholder="Buscar tareas..." value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{
-              width: '100%', padding: '5px 10px 5px 26px', fontSize: 13,
-              border: '0.5px solid var(--border-strong)', borderRadius: 'var(--radius)',
-              background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none',
-            }}
-          />
-        </div>
-
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          <FilterBtn value="all"     label="Todo"    group="type" />
-          {Object.entries(TASK_TYPES).map(([v, { label }]) => (
-            <FilterBtn key={v} value={v} label={label} group="type" />
-          ))}
-        </div>
-
-        <div style={{ display: 'flex', gap: 4, borderLeft: '0.5px solid var(--border-strong)', paddingLeft: 8 }}>
-          <FilterBtn value="all" label="— Prioridad" group="prio" />
-          {Object.entries(PRIORITIES).map(([v, { icon }]) => (
-            <FilterBtn key={v} value={v} label={`${icon} ${v}`} group="prio" />
-          ))}
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div style={{
-        display: 'flex', gap: 8, padding: '4px 20px',
-        background: 'var(--bg-tertiary)', flexShrink: 0, flexWrap: 'wrap',
-      }}>
-        <div style={{ fontSize: 11, padding: '2px 10px', borderRadius: 20, border: '0.5px solid var(--border)', background: 'var(--bg-primary)', color: 'var(--text-secondary)', display: 'flex', gap: 5 }}>
-          Progreso <strong style={{ color: 'var(--text-primary)' }}>{stats.done}/{stats.total}</strong>
-        </div>
-        {stats.byUser.map(u => (
-          <div key={u.id} style={{ fontSize: 11, padding: '2px 10px', borderRadius: 20, border: '0.5px solid var(--border)', background: 'var(--bg-primary)', color: 'var(--text-secondary)', display: 'flex', gap: 5, alignItems: 'center' }}>
-            <div style={{ width: 14, height: 14, borderRadius: '50%', background: u.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 500, color: u.color }}>
-              {u.initials[0]}
+      {/* Filters panel */}
+      {showFilters && (
+        <div style={{ padding: '0 16px 12px', background: 'var(--bg-tertiary)', display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0, borderBottom: '0.5px solid var(--border)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>Usuario</div>
+              <select style={selStyle} value={filterUser} onChange={e => setFilterUser(e.target.value)}>
+                <option value="all">Todos</option>
+                {USERS.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
             </div>
-            {u.name} <strong style={{ color: 'var(--text-primary)' }}>{u.count}</strong>
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>Prioridad</div>
+              <select style={selStyle} value={filterPriority} onChange={e => setFilterPriority(e.target.value)}>
+                <option value="all">Todas</option>
+                {Object.entries(PRIORITIES).map(([v, p]) => <option key={v} value={v}>{p.icon} {v}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>Tipo</div>
+              <select style={selStyle} value={filterType} onChange={e => setFilterType(e.target.value)}>
+                <option value="all">Todos</option>
+                {Object.entries(TASK_TYPES).map(([v, { label }]) => <option key={v} value={v}>{label}</option>)}
+              </select>
+            </div>
           </div>
-        ))}
+          {hasFilters && (
+            <button onClick={() => { setFilterUser('all'); setFilterPriority('all'); setFilterType('all') }}
+              style={{ fontSize: 12, color: 'var(--blue-text)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0 }}>
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Tab bar */}
+      <div style={{
+        display: 'flex', background: 'var(--bg-primary)',
+        borderBottom: '0.5px solid var(--border)',
+        flexShrink: 0,
+      }}>
+        {COLUMNS.map(col => {
+          const count = countFor(col.id)
+          const active = activeTab === col.id
+          return (
+            <button key={col.id} onClick={() => setActiveTab(col.id)}
+              style={{
+                flex: 1, padding: '10px 4px 8px',
+                background: 'none', border: 'none', cursor: 'pointer',
+                borderBottom: active ? `2.5px solid ${col.dot}` : '2.5px solid transparent',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                transition: 'all 0.12s',
+              }}
+            >
+              <span style={{ fontSize: 11, fontWeight: active ? 500 : 400, color: active ? 'var(--text-primary)' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                {col.label}
+              </span>
+              <span style={{
+                fontSize: 10, minWidth: 16, height: 16, borderRadius: 8,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px',
+                background: active ? col.dot : 'var(--bg-secondary)',
+                color: active ? '#fff' : 'var(--text-muted)',
+                fontWeight: 500,
+              }}>
+                {count}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
-      {/* Board */}
-      <div style={{
-        display: 'flex', gap: 12, padding: '12px 20px 20px',
-        overflowX: 'auto', flex: 1, alignItems: 'flex-start',
-      }}>
-        {COLUMNS.map(col => (
-          <Column
-            key={col.id}
-            col={col}
-            tasks={filtered.filter(t => t.status === col.id)}
-            onEdit={task => setModal({ task })}
-            onDelete={handleDelete}
-            onAddInCol={status => setModal({ defaultStatus: status })}
-            onDrop={moveTask}
-          />
-        ))}
+      {/* Column header */}
+      <div style={{ padding: '10px 16px 4px', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        <div style={{ width: 8, height: 8, borderRadius: '50%', background: activeCol?.dot }} />
+        <span style={{ fontSize: 12, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)' }}>
+          {activeCol?.label}
+        </span>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>— {filtered.length} tarea{filtered.length !== 1 ? 's' : ''}</span>
       </div>
+
+      {/* Task list */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '4px 16px 100px' }}>
+        {filtered.length === 0 ? (
+          <div style={{
+            textAlign: 'center', padding: '48px 20px',
+            color: 'var(--text-muted)', fontSize: 13,
+            border: '0.5px dashed var(--border)', borderRadius: 'var(--radius-lg)', marginTop: 8,
+          }}>
+            Sin tareas aquí
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 4 }}>
+            {filtered.map(t => (
+              <TaskCard key={t.id} task={t}
+                onEdit={task => setModal({ task })}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* FAB */}
+      <button onClick={() => setModal({ defaultStatus: activeTab })}
+        style={{
+          position: 'fixed', bottom: 28, right: 20,
+          width: 54, height: 54, borderRadius: '50%',
+          background: 'var(--blue)', color: '#fff', border: 'none',
+          fontSize: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', zIndex: 50,
+          boxShadow: '0 4px 16px rgba(24,95,165,0.35)',
+        }}
+      >+</button>
 
       {modal && (
         <TaskModal
@@ -216,20 +277,20 @@ export default function App() {
 
       <style>{`
         .task-card .card-hover-actions { display: none; }
-        .task-card:hover .card-hover-actions {
-          display: flex; gap: 3px;
-          position: absolute; top: 6px; right: 6px;
+        .task-card:active .card-hover-actions {
+          display: flex; gap: 4px;
+          position: absolute; top: 8px; right: 8px;
         }
         .card-hover-actions button {
-          width: 20px; height: 20px; border-radius: 4px;
+          width: 30px; height: 30px; border-radius: 6px;
           border: none; background: var(--bg-secondary);
-          cursor: pointer; font-size: 11px;
+          cursor: pointer; font-size: 13px;
           display: flex; align-items: center; justify-content: center;
           color: var(--text-secondary);
         }
-        .card-hover-actions button:hover { background: var(--bg-tertiary); }
-        .card-hover-actions button.del:hover { background: var(--red-light); color: var(--red); }
+        .card-hover-actions button.del { background: var(--red-light); color: var(--red); }
         .task-card:hover { border-color: var(--border-strong) !important; }
+        ::-webkit-scrollbar { width: 0; height: 0; }
       `}</style>
     </div>
   )
