@@ -18,20 +18,10 @@ function useIsMobile() {
   return isMobile
 }
 
-export default function App() {
-  const { session, profile, loading: authLoading, signOut, trialDaysLeft } = useAuth()
+function Board({ session, profile, signOut, trialDaysLeft }) {
   const { tasks, loading, addTask, updateTask, deleteTask, moveTask } = useTasks()
   const { t } = useTranslation()
   const isMobile = useIsMobile()
-
-  if (authLoading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', flexDirection: 'column', gap: 12 }}>
-      <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTop: '3px solid var(--blue)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-    </div>
-  )
-
-  if (!session) return <AuthPage />
   const [activeUser, setActiveUser] = useState('pato')
   const [activeTab, setActiveTab]   = useState('todo')
   const [filterUser, setFilterUser] = useState('all')
@@ -378,3 +368,19 @@ export default function App() {
     </div>
   )
 }
+
+export default function App() {
+  const { session, profile, loading: authLoading, signOut, trialDaysLeft } = useAuth()
+
+  if (authLoading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', flexDirection: 'column', gap: 12 }}>
+      <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTop: '3px solid var(--blue)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+    </div>
+  )
+
+  if (!session) return <AuthPage />
+
+  return <Board session={session} profile={profile} signOut={signOut} trialDaysLeft={trialDaysLeft} />
+}
+// APP_WRAPPER
