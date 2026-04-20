@@ -1,9 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { USERS, COLUMNS, TASK_TYPES, PRIORITIES } from './constants.js'
 import { useTasks } from './hooks/useTasks.js'
+import { useAuth } from './hooks/useAuth.js'
 import TaskModal from './components/TaskModal.jsx'
 import TaskCard from './components/TaskCard.jsx'
 import Column from './components/Column.jsx'
+import AuthPage from './components/AuthPage.jsx'
+import { useTranslation } from 'react-i18next'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -16,8 +19,19 @@ function useIsMobile() {
 }
 
 export default function App() {
+  const { session, profile, loading: authLoading, signOut, trialDaysLeft } = useAuth()
   const { tasks, loading, addTask, updateTask, deleteTask, moveTask } = useTasks()
+  const { t } = useTranslation()
   const isMobile = useIsMobile()
+
+  if (authLoading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', flexDirection: 'column', gap: 12 }}>
+      <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTop: '3px solid var(--blue)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+    </div>
+  )
+
+  if (!session) return <AuthPage />
   const [activeUser, setActiveUser] = useState('pato')
   const [activeTab, setActiveTab]   = useState('todo')
   const [filterUser, setFilterUser] = useState('all')
@@ -123,6 +137,10 @@ export default function App() {
             }}
           >{u.initials}</div>
         ))}
+        <button onClick={signOut} title={t('logout')}
+            style={{ padding: '5px 10px', fontSize: 12, borderRadius: 'var(--radius)', border: '0.5px solid var(--border-strong)', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+            {t('logout')}
+          </button>
         {!isMobile && (
           <button onClick={() => setModal({ defaultStatus: 'todo' })}
             style={{
@@ -146,6 +164,13 @@ export default function App() {
   if (!isMobile) return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <Topbar />
+
+      {/* Trial banner */}
+      {trialDaysLeft() > 0 && trialDaysLeft() <= 14 && (
+        <div style={{ background: 'var(--amber-light)', color: 'var(--amber)', fontSize: 12, padding: '6px 20px', textAlign: 'center', borderBottom: '0.5px solid var(--border)' }}>
+          ⏳ {t('trialBanner', { days: trialDaysLeft() })}
+        </div>
+      )}
 
       {/* Desktop subbar */}
       <div style={{
